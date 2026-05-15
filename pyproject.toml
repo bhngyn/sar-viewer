@@ -13,10 +13,13 @@ dependencies = [
     "structlog>=24.1",
     "shapely>=2.0",
     "pyproj>=3.6",
+    # Phase 1 — Ingest
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
-    "sqlalchemy>=2.0.49",
+    "sqlalchemy[asyncio]>=2.0.49",
     "pystac-client>=0.9.0",
+    # Phase 1 — Jobs & Storage
+    "celery[redis]>=5.4",
 ]
 
 [dependency-groups]
@@ -29,6 +32,7 @@ dev = [
     "vcrpy>=8.1.1",
     "pytest-recording>=0.13.4",
     "respx>=0.23.1",
+    "celery[pytest]>=5.4",
 ]
 
 [tool.uv]
@@ -48,7 +52,7 @@ quote-style = "double"
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["shared", "services/api/src"]
+files = ["shared", "services/api/src", "services/worker/src"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
@@ -56,8 +60,26 @@ module = ["shapely.*", "pyproj.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["aiosqlite.*", "vcr.*", "respx.*"]
+module = [
+    "aiosqlite.*",
+    "vcr.*",
+    "respx.*",
+    "celery.*",
+    "kombu.*",
+    "redis.*",
+    "alembic.*",
+    "sqlalchemy.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Celery's @app.task decorator has no type stubs so decorated functions become
+# untyped.  We also have deferred imports for optional service packages
+# (services/ingest, services/processor) that are not installed in every env.
+# Suppress all errors in this file; the logic is tested end-to-end via the
+# integration test suite.
+module = ["services.worker.src.tasks"]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
