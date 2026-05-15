@@ -24,8 +24,11 @@ ARG SNAP_MAX_MEM=14G
 FROM ubuntu:22.04 AS snap-installer
 
 ARG SNAP_VERSION
-# SNAP Linux installer URL (esa.int official CDN)
-ARG SNAP_INSTALLER_URL="https://download.esa.int/step/snap/${SNAP_VERSION}/installers/esa-snap_sentinel_unix_${SNAP_VERSION}.sh"
+# SNAP Linux installer URL (esa.int official CDN).
+# Filename format: esa-snap_sentinel_linux-<MAJOR>.<MINOR>.<PATCH>.sh
+# We assume patch=.0 for the pinned major.minor — bump SNAP_INSTALLER_URL
+# directly if ESA releases a 10.0.x patch.
+ARG SNAP_INSTALLER_URL="https://step.esa.int/downloads/${SNAP_VERSION}/installers/esa-snap_sentinel_linux-${SNAP_VERSION}.0.sh"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
