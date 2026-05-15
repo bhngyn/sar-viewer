@@ -68,9 +68,9 @@ class TestBuildBaseline:
                 capture_output=True,
                 text=True,
             )
-            assert (
-                result.returncode == 0
-            ), f"rio cogeo validate failed for {path}:\n{result.stdout}\n{result.stderr}"
+            assert result.returncode == 0, (
+                f"rio cogeo validate failed for {path}:\n{result.stdout}\n{result.stderr}"
+            )
 
     def test_per_pixel_arrays_match_baseline(self, tmp_path: Path) -> None:
         """The per-pixel COGs encode the actual median/MAD per pixel."""

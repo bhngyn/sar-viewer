@@ -56,9 +56,9 @@ class TestDetectIntegration:
 
         assert anomalies, "expected at least one anomaly from the +10 dB patch"
         # At least one anomaly should be omnibus-confirmed.
-        assert any(
-            a.confirmed_omnibus for a in anomalies
-        ), "omnibus should confirm the +10 dB bright patch"
+        assert any(a.confirmed_omnibus for a in anomalies), (
+            "omnibus should confirm the +10 dB bright patch"
+        )
         # Time series should be populated for every anomaly.
         for a in anomalies:
             assert str(a.id) in ts_by_id

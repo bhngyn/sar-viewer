@@ -66,9 +66,9 @@ class TestStatisticalDetector:
                 any_match = True
                 # Inspect the matching anomaly's kind.
                 matching = next(a for a in anomalies if a.id == cluster.anomaly_id)
-                assert (
-                    matching.kind == "new"
-                ), f"bright patch should classify as 'new', got {matching.kind}"
+                assert matching.kind == "new", (
+                    f"bright patch should classify as 'new', got {matching.kind}"
+                )
                 assert matching.score > 3.5, matching.score
                 break
         assert any_match, "no cluster overlapped the injected bright patch"
