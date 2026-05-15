@@ -226,16 +226,135 @@ def task_process(self: Any, job_id: str, params: dict[str, Any]) -> dict[str, An
 
 
 # ---------------------------------------------------------------------------
-# analyze — Phase 2 stub
+# analyze — Phase 2
 # ---------------------------------------------------------------------------
 
 
 @app.task(name="analyze", bind=True)
 def task_analyze(self: Any, job_id: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Anomaly detection against baseline.  Implemented in Phase 2."""
+    """Build a baseline (if not cached) and detect anomalies in the new scene.
+
+    ``params`` keys:
+      - ``aoi_id``:                UUID string of the AOI.
+      - ``new_scene_id``:          UUID string of the scene being analysed.
+      - ``new_scene_cog``:         path to the σ⁰ (dB) COG for that scene
+                                   (produced by ``task_process``).
+      - ``baseline_cog_paths``:    list of path strings — prior σ⁰ COGs.
+      - ``baseline_scene_ids``:    list of UUID strings parallel to the above.
+      - ``timeseries_cog_paths``:  optional list of path strings for omnibus.
+      - ``timeseries_dates``:      optional list of ISO datetime strings,
+                                   parallel to ``timeseries_cog_paths``.
+      - ``alpha``:                 optional float, omnibus p-value threshold,
+                                   default 1e-4.
+
+    The result JSON is written to
+    ``data/derived/anomalies/<aoi_id>/<new_scene_id>.json`` and the path is
+    recorded as the job's ``result``.
+    """
+    # Deferred import: services/analyzer may not be available in every env.
+    from services.analyzer.src.baseline import build_baseline  # type: ignore[import-not-found]
+    from services.analyzer.src.detect import detect_anomalies  # type: ignore[import-not-found]
+
     mark_job_running(job_id)
-    mark_job_error(job_id, "Phase 2")
-    raise NotImplementedError("Phase 2")
+    log = logger.bind(job_id=job_id, kind="analyze")
+
+    try:
+        aoi_id = UUID(params["aoi_id"])
+        new_scene_id = UUID(params["new_scene_id"])
+        new_scene_cog = Path(params["new_scene_cog"])
+        baseline_cog_paths = [Path(p) for p in params["baseline_cog_paths"]]
+        baseline_scene_ids = [UUID(s) for s in params["baseline_scene_ids"]]
+
+        timeseries_cog_paths = [Path(p) for p in params.get("timeseries_cog_paths", []) or []]
+        timeseries_dates_raw = params.get("timeseries_dates", []) or []
+        timeseries_dates = [datetime.fromisoformat(s) for s in timeseries_dates_raw]
+        if timeseries_cog_paths and len(timeseries_cog_paths) != len(timeseries_dates):
+            raise ValueError("timeseries_cog_paths and timeseries_dates must have the same length")
+        timeseries = list(zip(timeseries_dates, timeseries_cog_paths, strict=True)) or None
+        alpha = float(params.get("alpha", 1e-4))
+
+        # Build (or reuse) the baseline COGs.  We key on the sorted scene ids
+        # so re-analysing a new scene against the same baseline is idempotent.
+        baseline_key = LocalCache.hash_inputs(
+            *sorted([s.hex for s in baseline_scene_ids]), "baseline"
+        )
+        baseline_dir = DERIVED_ROOT / "baselines" / baseline_key
+        baseline_median = baseline_dir / "median_db.tif"
+        baseline_mad = baseline_dir / "mad_db.tif"
+
+        if baseline_median.exists() and baseline_mad.exists():
+            log.info("analyze.baseline_cache_hit", dir=str(baseline_dir))
+            from shared.models import Baseline as _Baseline
+
+            baseline = _Baseline(
+                aoi_id=aoi_id,
+                scene_ids=baseline_scene_ids,
+                # Scalars are best-effort recomputed below from a cheap read.
+                median_db=float("nan"),
+                mad_db=float("nan"),
+                n_obs=len(baseline_scene_ids),
+                computed_at=datetime.now(UTC),
+                median_db_cog=str(baseline_median),
+                mad_db_cog=str(baseline_mad),
+            )
+        else:
+            log.info("analyze.baseline_build", n_scenes=len(baseline_cog_paths))
+            baseline = build_baseline(
+                aoi_id=aoi_id,
+                cog_paths=baseline_cog_paths,
+                scene_ids=baseline_scene_ids,
+                out_dir=baseline_dir,
+            )
+
+        anomalies, ts_by_id = detect_anomalies(
+            aoi_id=aoi_id,
+            new_scene_cog=new_scene_cog,
+            new_scene_id=new_scene_id,
+            baseline=baseline,
+            timeseries=timeseries,
+            alpha=alpha,
+        )
+
+        # Persist as JSON sidecar for the UI / explainability sparklines.
+        result_dir = DERIVED_ROOT / "anomalies" / str(aoi_id)
+        result_dir.mkdir(parents=True, exist_ok=True)
+        result_path = result_dir / f"{new_scene_id}.json"
+        result_path.write_text(
+            json.dumps(
+                {
+                    "aoi_id": str(aoi_id),
+                    "new_scene_id": str(new_scene_id),
+                    "baseline_median_cog": baseline.median_db_cog,
+                    "baseline_mad_cog": baseline.mad_db_cog,
+                    "n_baseline_scenes": baseline.n_obs,
+                    "alpha": alpha,
+                    "anomalies": [a.model_dump(mode="json") for a in anomalies],
+                    "time_series_by_anomaly_id": {
+                        aid: [{"t": t, "sigma0_db": v} for (t, v) in ts]
+                        for aid, ts in ts_by_id.items()
+                    },
+                },
+                indent=2,
+            )
+        )
+
+        log.info(
+            "analyze.done",
+            n_anomalies=len(anomalies),
+            n_confirmed=sum(1 for a in anomalies if a.confirmed_omnibus),
+            result=str(result_path),
+        )
+        mark_job_done(job_id, result=str(result_path))
+        return {
+            "status": "done",
+            "path": str(result_path),
+            "n_anomalies": len(anomalies),
+        }
+
+    except Exception as exc:
+        log.error("analyze.error", error=str(exc))
+        mark_job_error(job_id, str(exc))
+        raise
 
 
 # ---------------------------------------------------------------------------

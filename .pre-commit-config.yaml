@@ -2,7 +2,9 @@
 # Install with: uv run pre-commit install
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    # Pinned to match `uv sync`'s resolved version so pre-commit and CI
+    # agree on formatting (0.6.9 → 0.15.13 changed assert-message wrapping).
+    rev: v0.15.13
     hooks:
       - id: ruff
         args: [--fix]
