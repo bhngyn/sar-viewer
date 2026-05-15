@@ -1,0 +1,78 @@
+interactions:
+  - request:
+      body:
+        '{"bbox": [13.0, 51.0, 14.0, 52.0], "datetime": "2024-01-01T00:00:00+00:00/2024-01-31T23:59:59+00:00",
+        "collections": ["SENTINEL-1"], "limit": 100}'
+      headers:
+        Accept:
+          - "*/*"
+        Accept-Encoding:
+          - gzip, deflate
+        Connection:
+          - keep-alive
+        Content-Type:
+          - application/json
+        User-Agent:
+          - python-httpx/0.27.0
+      method: POST
+      uri: https://catalogue.dataspace.copernicus.eu/stac/search
+    response:
+      body:
+        string: >-
+          {
+            "type": "FeatureCollection",
+            "features": [
+              {
+                "type": "Feature",
+                "stac_version": "1.0.0",
+                "id": "S1A_IW_GRDH_1SDV_20240115T054012_20240115T054037_052115_064E12",
+                "geometry": {
+                  "type": "Polygon",
+                  "coordinates": [[[13.0, 51.0], [14.0, 51.0], [14.0, 52.0], [13.0, 52.0], [13.0, 51.0]]]
+                },
+                "bbox": [13.0, 51.0, 14.0, 52.0],
+                "properties": {
+                  "datetime": "2024-01-15T05:40:12Z",
+                  "start_datetime": "2024-01-15T05:40:12Z",
+                  "end_datetime": "2024-01-15T05:40:37Z",
+                  "platform": "SENTINEL-1A",
+                  "productType": "IW_GRDH_1S",
+                  "polarisation": "VV VH",
+                  "orbitDirection": "ASCENDING"
+                },
+                "links": [],
+                "assets": {}
+              },
+              {
+                "type": "Feature",
+                "stac_version": "1.0.0",
+                "id": "S1B_IW_GRDH_1SDV_20240121T054012_20240121T054037_035234_042A1F",
+                "geometry": {
+                  "type": "Polygon",
+                  "coordinates": [[[13.0, 51.0], [14.0, 51.0], [14.0, 52.0], [13.0, 52.0], [13.0, 51.0]]]
+                },
+                "bbox": [13.0, 51.0, 14.0, 52.0],
+                "properties": {
+                  "datetime": "2024-01-21T05:40:12Z",
+                  "start_datetime": "2024-01-21T05:40:12Z",
+                  "end_datetime": "2024-01-21T05:40:37Z",
+                  "platform": "SENTINEL-1B",
+                  "productType": "IW_GRDH_1S",
+                  "polarisation": "VV VH",
+                  "orbitDirection": "ASCENDING"
+                },
+                "links": [],
+                "assets": {}
+              }
+            ],
+            "links": [],
+            "numberMatched": 2,
+            "numberReturned": 2
+          }
+      headers:
+        Content-Type:
+          - application/json
+      status:
+        code: 200
+        message: OK
+version: 1
