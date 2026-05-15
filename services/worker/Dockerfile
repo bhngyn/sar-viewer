@@ -19,16 +19,15 @@ RUN pip install --no-cache-dir \
         "structlog>=24.1"
 
 # Non-root user per OPSEC profile.
-RUN useradd --create-home --uid 10002 appuser
+# Create directories and chown /app before switching user so the
+# non-root user can write to /app/data when the volume is not mounted.
+RUN useradd --create-home --uid 10002 appuser \
+    && mkdir -p /app/data/cache /app/data/derived \
+    && chown -R appuser:appuser /app
 USER appuser
 
 # Copy shared models (needed by tasks) and the worker package.
 COPY --chown=appuser:appuser shared /app/shared
 COPY --chown=appuser:appuser services/worker/src /app/services/worker/src
-
-# data/ is mounted as a volume at runtime (see docker-compose.yml).
-# Create the expected directories so the container starts cleanly even
-# if the volume is not yet mounted.
-RUN mkdir -p /app/data/cache /app/data/derived
 
 CMD ["celery", "-A", "services.worker.src.app", "worker", "--loglevel=info", "--concurrency=2"]
