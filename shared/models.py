@@ -63,9 +63,11 @@ class Job(BaseModel):
 class Baseline(BaseModel):
     """A statistical baseline (median + MAD of sigma-0 in dB) for an AOI.
 
-    Note: In Phase 0 ``median_db`` / ``mad_db`` are scalars per the literal
-    spec in CLAUDE.md §5. Phase 2 may need to evolve these to per-pixel
-    raster handles; that change goes through the interface-change protocol.
+    Phase 0 declared scalar ``median_db`` / ``mad_db`` (AOI-mean summaries).
+    Phase 2 (phase-2-brief.md §1.1.1) extends this additively with two
+    optional path fields pointing to per-pixel COG rasters. The scalar
+    fields remain for quick numeric summaries; the COG paths carry the
+    full per-pixel detail required for statistical anomaly detection.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -76,6 +78,12 @@ class Baseline(BaseModel):
     mad_db: float
     n_obs: int
     computed_at: datetime
+    # Phase 2 additive — path strings, relative to project root or absolute.
+    # ``None`` means the AOI-mean scalars are the only available summary
+    # (backward compatibility with Phase 0/1 callers that built scalar-only
+    # baselines).
+    median_db_cog: str | None = None
+    mad_db_cog: str | None = None
 
 
 AnomalyKind = Literal["new", "missing", "intensity_change"]
