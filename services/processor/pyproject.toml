@@ -1,0 +1,16 @@
+[project]
+name = "sar-viewer-processor"
+version = "0.1.0"
+description = "SNAP/pyroSAR GRD and SLC processing pipelines for sar-viewer"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = "==3.11.*"
+dependencies = [
+    "pyroSAR>=0.24",
+    "rasterio>=1.3",
+    "rio-cogeo>=5.0",
+    "numpy>=1.26",
+    "structlog>=24.1",
+]
+
+[tool.uv]
+package = false
