@@ -39,6 +39,9 @@ dev = [
     "numpy>=1.26",
     "scipy>=1.13",
     "scikit-learn>=1.4",
+    # fusion service test deps
+    "pillow>=10.0",
+    "matplotlib>=3.8",
 ]
 
 [tool.uv]
@@ -64,6 +67,7 @@ files = [
     "services/worker/src",
     "services/processor/src",
     "services/analyzer/src",
+    "services/fusion/src",
 ]
 plugins = ["pydantic.mypy"]
 
@@ -85,6 +89,8 @@ module = [
     "rio_cogeo.*",
     "scipy.*",
     "sklearn.*",
+    "matplotlib.*",
+    "PIL.*",
 ]
 ignore_missing_imports = true
 

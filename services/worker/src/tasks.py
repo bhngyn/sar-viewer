@@ -358,13 +358,91 @@ def task_analyze(self: Any, job_id: str, params: dict[str, Any]) -> dict[str, An
 
 
 # ---------------------------------------------------------------------------
-# fuse — Phase 2 stub
+# fuse — Phase 2
 # ---------------------------------------------------------------------------
 
 
 @app.task(name="fuse", bind=True)
 def task_fuse(self: Any, job_id: str, params: dict[str, Any]) -> dict[str, Any]:
-    """SAR ⊕ S2 basemap fusion.  Implemented in Phase 2."""
+    """SAR ⊕ S2 basemap fusion. Four modes (see services/fusion/src/fuse.py).
+
+    ``params`` keys:
+      - ``mode``:           one of side_by_side / sar_on_s2 / anomaly_highlight
+                            / change_rgb_on_s2.
+      - ``s2_cog_path``:    path to the Sentinel-2 RGB basemap COG.
+      - ``sar_cog_path``:   optional path to the SAR σ⁰ COG (required by
+                            side_by_side and sar_on_s2).
+      - ``rgb_cog_path``:   optional path to the multitemporal RGB COG
+                            (required by change_rgb_on_s2).
+      - ``anomalies``:      optional list of Anomaly dicts (required by
+                            anomaly_highlight; may be empty).
+      - ``alpha``:          optional float overlay strength. Default 0.5.
+                            change_rgb_on_s2 is clamped to ≤ 0.5.
+      - ``colormap``:       optional perceptually uniform LUT for SAR
+                            overlays. Default "gray". "jet" is rejected.
+      - ``watermark``:      optional bool, default True.
+    """
+    from services.fusion.src.fuse import fuse  # type: ignore[import-not-found]
+    from shared.models import Anomaly as _Anomaly
+
     mark_job_running(job_id)
-    mark_job_error(job_id, "Phase 2")
-    raise NotImplementedError("Phase 2")
+    log = logger.bind(job_id=job_id, kind="fuse")
+
+    try:
+        mode = params["mode"]
+        s2_cog_path = Path(params["s2_cog_path"])
+        sar_cog_path = Path(params["sar_cog_path"]) if params.get("sar_cog_path") else None
+        rgb_cog_path = Path(params["rgb_cog_path"]) if params.get("rgb_cog_path") else None
+        alpha = float(params.get("alpha", 0.5))
+        colormap = params.get("colormap", "gray")
+        watermark = bool(params.get("watermark", True))
+        anomalies_raw = params.get("anomalies")
+        anomalies = (
+            [_Anomaly.model_validate(a) for a in anomalies_raw]
+            if anomalies_raw is not None
+            else None
+        )
+
+        # Cache key — fused COGs are deterministic from their inputs.
+        cache_key = LocalCache.hash_inputs(
+            mode,
+            str(s2_cog_path),
+            str(sar_cog_path or ""),
+            str(rgb_cog_path or ""),
+            str(alpha),
+            colormap,
+            str(watermark),
+            *(str(a.id) for a in (anomalies or [])),
+        )
+        cached = derived_cache.get(cache_key)
+        if cached is not None:
+            log.info("fuse.cache_hit", path=str(cached))
+            mark_job_done(job_id, result=str(cached))
+            return {"status": "done", "path": str(cached)}
+
+        out_dir = DERIVED_ROOT / "fused" / cache_key[:2] / cache_key
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / "fused.tif"
+
+        log.info("fuse.start", mode=mode)
+        result_path = fuse(
+            mode=mode,
+            s2_cog=s2_cog_path,
+            sar_cog=sar_cog_path,
+            rgb_cog=rgb_cog_path,
+            anomalies=anomalies,
+            out_path=out_path,
+            alpha=alpha,
+            colormap=colormap,
+            watermark=watermark,
+        )
+
+        stored = derived_cache.put(cache_key, result_path)
+        log.info("fuse.done", path=str(stored))
+        mark_job_done(job_id, result=str(stored))
+        return {"status": "done", "path": str(stored)}
+
+    except Exception as exc:
+        log.error("fuse.error", error=str(exc))
+        mark_job_error(job_id, str(exc))
+        raise
