@@ -1,1 +1,1 @@
-# services package namespace
+"""Services package namespace."""

@@ -164,11 +164,17 @@ def _make_fake_processor_module(cog_path: Path) -> types.ModuleType:
 
 
 def _install_stubs(
+    monkeypatch: pytest.MonkeyPatch,
     aoi_id: uuid.UUID,
     safe_dir: Path,
     cog_path: Path,
 ) -> None:
-    """Inject fake ingest + processor modules into sys.modules."""
+    """Inject fake ingest + processor modules into sys.modules.
+
+    Uses ``monkeypatch.setitem`` so the originals (or absences) are restored
+    after the test, preventing cross-test pollution of the real
+    ``services.processor.src.pipeline`` module imported elsewhere in the suite.
+    """
     # Ensure parent packages exist so sub-package imports resolve.
     for pkg in (
         "services.ingest",
@@ -177,10 +183,14 @@ def _install_stubs(
         "services.processor.src",
     ):
         if pkg not in sys.modules:
-            sys.modules[pkg] = types.ModuleType(pkg)
+            monkeypatch.setitem(sys.modules, pkg, types.ModuleType(pkg))
 
-    sys.modules["services.ingest.src.client"] = _make_fake_ingest_module(aoi_id, safe_dir)
-    sys.modules["services.processor.src.pipeline"] = _make_fake_processor_module(cog_path)
+    monkeypatch.setitem(
+        sys.modules, "services.ingest.src.client", _make_fake_ingest_module(aoi_id, safe_dir)
+    )
+    monkeypatch.setitem(
+        sys.modules, "services.processor.src.pipeline", _make_fake_processor_module(cog_path)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +222,7 @@ def test_search_task_creates_job_and_returns_scenes(
     )
 
     aoi_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     job_id = str(uuid.uuid4())
     db_mod.create_job(job_id=job_id, aoi_id=str(aoi_id), kind="search")
@@ -266,7 +276,7 @@ def test_fetch_task_caches_safe_dir(
 
     aoi_id = uuid.uuid4()
     scene_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     job_id = str(uuid.uuid4())
     db_mod.create_job(job_id=job_id, aoi_id=str(aoi_id), kind="fetch")
@@ -310,7 +320,7 @@ def test_process_task_produces_cog(
 
     aoi_id = uuid.uuid4()
     scene_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     job_id = str(uuid.uuid4())
     db_mod.create_job(job_id=job_id, aoi_id=str(aoi_id), kind="process")
@@ -358,7 +368,7 @@ def test_full_dag_search_fetch_process(
     monkeypatch.setattr("services.worker.src.tasks.derived_cache", derived_cache)
 
     aoi_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     # --- search ---
     search_job_id = str(uuid.uuid4())
@@ -440,7 +450,7 @@ def test_audit_log_written_for_search_when_enabled(
 
     aoi_id = uuid.uuid4()
     scene_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     # First fetch — miss, then the key is stored.
     fetch_job_id = str(uuid.uuid4())
@@ -482,7 +492,7 @@ def test_audit_log_not_created_when_disabled(
 
     aoi_id = uuid.uuid4()
     scene_id = uuid.uuid4()
-    _install_stubs(aoi_id, fake_safe_dir, fake_cog)
+    _install_stubs(monkeypatch, aoi_id, fake_safe_dir, fake_cog)
 
     fetch_job_id = str(uuid.uuid4())
     db_mod.create_job(job_id=fetch_job_id, aoi_id=str(aoi_id), kind="fetch")

@@ -57,6 +57,32 @@ services:
     networks: [internal]
     restart: unless-stopped
 
+  # SNAP sidecar — ESA SNAP 10.0 GPT for heavy SAR processing.
+  # The processor worker invokes ``gpt`` via subprocess over the shared
+  # ./data/scratch volume.  SLC jobs are capped at MAX_SLC_PARALLEL=2
+  # (see services/processor/src/pipeline.py) to avoid OOM on 16 GB hosts.
+  #
+  # OPSEC §6: non-root user, no --privileged, internal bridge network only.
+  # This container has NO outbound network access at runtime (orbit files and
+  # DEMs are downloaded on first run via SNAP's auto-download mechanism, which
+  # does use the network — that is expected and documented).
+  snap:
+    build:
+      context: .
+      dockerfile: services/processor/snap.Dockerfile
+      args:
+        SNAP_VERSION: "10.0"
+        SNAP_MAX_MEM: "14G"
+    image: sar-viewer/snap:10.0
+    container_name: sar-viewer-snap
+    volumes:
+      - ./data/scratch:/scratch
+    networks: [internal]
+    restart: unless-stopped
+    # Resource limits: 14 GB heap inside JVM + OS overhead; cap at 15 GB here.
+    mem_limit: 15g
+    # No ports exposed — invoked via shared volume, not HTTP.
+
 networks:
   internal:
     driver: bridge

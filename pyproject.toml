@@ -33,6 +33,10 @@ dev = [
     "pytest-recording>=0.13.4",
     "respx>=0.23.1",
     "celery[pytest]>=5.4",
+    # processor service test deps (rasterio/rio-cogeo needed for COG fixture tests)
+    "rasterio>=1.3",
+    "rio-cogeo>=5.0",
+    "numpy>=1.26",
 ]
 
 [tool.uv]
@@ -52,7 +56,7 @@ quote-style = "double"
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["shared", "services/api/src", "services/worker/src"]
+files = ["shared", "services/api/src", "services/worker/src", "services/processor/src"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
@@ -69,6 +73,8 @@ module = [
     "redis.*",
     "alembic.*",
     "sqlalchemy.*",
+    "rasterio.*",
+    "rio_cogeo.*",
 ]
 ignore_missing_imports = true
 
