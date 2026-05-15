@@ -1,0 +1,36 @@
+interactions:
+  - request:
+      body:
+        '{"input": {"bounds": {"bbox": [13.0, 51.0, 14.0, 52.0], "properties": {"crs":
+        "http://www.opengis.net/def/crs/EPSG/0/4326"}}, "data": [{"dataFilter": {"timeRange":
+        {"from": "2024-01-15T00:00:00Z", "to": "2024-01-15T23:59:59Z"}, "mosaickingOrder":
+        "leastCC"}, "type": "S2L2A"}]}, "output": {"width": 512, "height": 512, "responses":
+        [{"identifier": "default", "format": {"type": "image/png"}}]}, "evalscript":
+        "\n//VERSION=3\nfunction setup() {\n  return {\n    input: [{ bands: [\"B04\",
+        \"B03\", \"B02\"], units: \"DN\" }],\n    output: { bands: 3 }\n  };\n}\nfunction
+        evaluatePixel(sample) {\n  return [sample.B04 / 10000.0, sample.B03 / 10000.0,
+        sample.B02 / 10000.0];\n}\n"}'
+      headers:
+        Accept:
+          - "*/*"
+        Accept-Encoding:
+          - gzip, deflate
+        Connection:
+          - keep-alive
+        Content-Type:
+          - application/json
+        User-Agent:
+          - python-httpx/0.27.0
+      method: POST
+      uri: https://services.sentinel-hub.com/api/v1/process?instanceId=test-instance-id
+    response:
+      body:
+        # Minimal 1x1 PNG: 8-byte signature + IHDR + IDAT + IEND
+        string: "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+      headers:
+        Content-Type:
+          - image/png
+      status:
+        code: 200
+        message: OK
+version: 1

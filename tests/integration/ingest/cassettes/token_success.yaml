@@ -1,0 +1,28 @@
+interactions:
+  - request:
+      body: grant_type=client_credentials&client_id=test-client-id&client_secret=test-client-secret
+      headers:
+        Accept:
+          - "*/*"
+        Accept-Encoding:
+          - gzip, deflate
+        Connection:
+          - keep-alive
+        Content-Length:
+          - "81"
+        Content-Type:
+          - application/x-www-form-urlencoded
+        User-Agent:
+          - python-httpx/0.27.0
+      method: POST
+      uri: https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+    response:
+      body:
+        string: '{"access_token":"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ0ZXN0In0.eyJleHAiOjk5OTk5OTk5OTksImlhdCI6MTcwMDAwMDAwMCwianRpIjoiZmFrZS1qdGkiLCJpc3MiOiJodHRwczovL2lkZW50aXR5LmRhdGFzcGFjZS5jb3Blcm5pY3VzLmV1L2F1dGgvcmVhbG1zL0NEU0UiLCJzdWIiOiJ0ZXN0LXN1YiIsInR5cCI6IkJlYXJlciJ9.signature","expires_in":299,"token_type":"Bearer","scope":"openid profile email"}'
+      headers:
+        Content-Type:
+          - application/json
+      status:
+        code: 200
+        message: OK
+version: 1
