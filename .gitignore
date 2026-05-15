@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+data/
+*.SAFE/
+*.zip
+*.tif
+!tests/fixtures/*.tif
+.venv/
+__pycache__/
+node_modules/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+audit.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

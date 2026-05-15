@@ -1,0 +1,10 @@
+# Copy to docker-compose.override.yml for local dev tweaks.
+# This file is gitignored only via `docker-compose.override.yml`; the .example
+# is checked in as a template.
+
+services:
+  api:
+    volumes:
+      - ./shared:/app/shared:ro
+      - ./services/api/src:/app/services/api/src:ro
+    command: ["uvicorn", "services.api.src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

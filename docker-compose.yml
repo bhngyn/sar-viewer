@@ -1,0 +1,62 @@
+# Phase 0 docker-compose. Five services are stubbed per CLAUDE.md §0/§5.
+# All services run as non-root and on a single user-defined bridge network
+# (no host networking, no --privileged) per the OPSEC profile in §6.
+
+name: sar-viewer
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    image: sar-viewer/api:0.1.0
+    container_name: sar-viewer-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_AOI=${LOG_AOI:-false}
+      - AUDIT_LOG_ENABLED=${AUDIT_LOG_ENABLED:-false}
+    networks: [internal]
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    image: sar-viewer/worker:0.1.0
+    container_name: sar-viewer-worker
+    depends_on: [redis]
+    networks: [internal]
+    restart: "no" # Phase 0 placeholder exits cleanly; Celery wiring is Phase 1.
+
+  redis:
+    image: redis:7-alpine
+    container_name: sar-viewer-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: [internal]
+    restart: unless-stopped
+
+  tiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    container_name: sar-viewer-tiler
+    ports:
+      - "8001:8000"
+    environment:
+      - PORT=8000
+    networks: [internal]
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: services/ui/Dockerfile
+    image: sar-viewer/ui:0.1.0
+    container_name: sar-viewer-ui
+    ports:
+      - "5173:80"
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge

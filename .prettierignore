@@ -1,0 +1,5 @@
+# Operator-authored spec — do not reformat.
+CLAUDE.md
+LICENSE
+uv.lock
+data/
