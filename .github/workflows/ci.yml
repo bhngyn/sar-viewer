@@ -31,7 +31,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Mypy
-        run: uv run mypy shared services/api/src services/worker/src services/processor/src services/analyzer/src
+        run: uv run mypy shared services/api/src services/worker/src services/processor/src services/analyzer/src services/fusion/src
 
       - name: Pytest
         run: uv run pytest -q
