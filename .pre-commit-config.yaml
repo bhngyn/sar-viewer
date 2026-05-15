@@ -25,6 +25,9 @@ repos:
           - pydantic>=2.7
           - fastapi>=0.115
           - types-requests
+          - structlog>=24.1
+          - sqlalchemy>=2.0
+          - celery>=5.4
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.2

@@ -7,21 +7,26 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install only what the api service needs in Phase 0.
+# Phase 1: api service deps (added celery[redis], sqlalchemy for job dispatch).
 RUN pip install --no-cache-dir \
         "fastapi>=0.115" \
         "uvicorn[standard]>=0.30" \
         "pydantic>=2.7" \
         "structlog>=24.1" \
         "shapely>=2.0" \
-        "pyproj>=3.6"
+        "pyproj>=3.6" \
+        "celery[redis]>=5.4" \
+        "sqlalchemy>=2.0"
 
 # Non-root user per CLAUDE.md §6 OPSEC profile.
 RUN useradd --create-home --uid 10001 appuser
 USER appuser
 
 COPY --chown=appuser:appuser shared /app/shared
-COPY --chown=appuser:appuser services/api/src /app/services/api/src
+COPY --chown=appuser:appuser services/__init__.py /app/services/__init__.py
+COPY --chown=appuser:appuser services/api /app/services/api
+COPY --chown=appuser:appuser services/worker/src /app/services/worker/src
+COPY --chown=appuser:appuser services/worker/__init__.py /app/services/worker/__init__.py
 
 EXPOSE 8000
 
