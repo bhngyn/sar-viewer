@@ -32,7 +32,7 @@ fmt:
 	uv run ruff format .
 
 type:
-	uv run mypy shared services/api/src
+	uv run mypy shared services/api/src services/processor/src
 
 test:
 	uv run pytest
